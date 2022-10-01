@@ -3,7 +3,7 @@
 # See https://github.com/ColasNahaboo/bashcgi
 # Uses the CGI env variables REQUEST_METHOD CONTENT_TYPE QUERY_STRING
 
-export BASHCGI_RELEASE=4.1.0
+export BASHCGI_RELEASE=5.0.0
 export BASHCGI_VERSION="${BASHCGI_RELEASE%%.*}"
 cr=$'\r'
 nl=$'\n'
@@ -44,28 +44,6 @@ trace() {
     #echo "$@" >> /tmp/out.log
     :
 }
-
-param() {
-    if [ "$1" = -f ]; then
-        shift
-        if [ $# -eq 0 ]; then
-            echo "$FORMFILES"
-        elif [ $# -eq 1 ]; then
-            eval echo "\$FORMFILE_$1"
-        else
-            declare -x "FORMFILE_$1=$*"
-        fi
-    else
-        if [ $# -eq 0 ]; then
-            echo "$FORMS"
-        elif [ $# -eq 1 ]; then
-            eval echo "\${FORMS[$1]}"
-        else
-            declare -x "FORM_$1=$*"
-        fi
-    fi
-}
-
 
 # decodes the %XX url encoding in $1, same as urlencode -d but faster
 # removes carriage returns to force unix newlines, converts + into space
