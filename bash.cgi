@@ -41,7 +41,8 @@ else
 fi
 
 trace() {
-    echo "$@" >> /tmp/out.log
+    #echo "$@" >> /tmp/out.log
+    :
 }
 
 param() {
