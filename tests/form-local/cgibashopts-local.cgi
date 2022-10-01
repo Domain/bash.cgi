@@ -18,11 +18,11 @@ main() {
     if [ -n "${FORM_file:-}" ]; then
 	src="/tmp/${FORM_file##*/}"
 	[ "$FORMFILES" = file ] || echo "<p>***Error, FORMFILES=$FORMFILES</p>"
-        if [ -d "$CGIBASHOPTS_DIR" ]; then
-	    if [ -e "$CGIBASHOPTS_DIR/file" ]; then
-	        if [ -s "$CGIBASHOPTS_DIR/file" ]; then
+        if [ -d "$BASHCGI_DIR" ]; then
+	    if [ -e "$BASHCGI_DIR/file" ]; then
+	        if [ -s "$BASHCGI_DIR/file" ]; then
 		    if [ -s "$src" ]; then
-		        if cmp -s "$src" "$CGIBASHOPTS_DIR/file"; then
+		        if cmp -s "$src" "$BASHCGI_DIR/file"; then
 			    echo "<p>Upload of \"$src\" successful</p>"
 		        else
 			    echo "<p>***Error, file uploaded differ</p>"
@@ -37,11 +37,11 @@ main() {
 	        echo "<p>***Error no uploaded file!</p>"
 	    fi
         else
-            echo "<p>***Error no directory \"CGIBASHOPTS_DIR\"</p>"
+            echo "<p>***Error no directory \"BASHCGI_DIR\"</p>"
         fi
     fi
-    echo "<b>Contents of \"CGIBASHOPTS_DIR\":</b><pre>"
-    (cd "$CGIBASHOPTS_DIR" && ls -l)
+    echo "<b>Contents of \"BASHCGI_DIR\":</b><pre>"
+    (cd "$BASHCGI_DIR" && ls -l)
     echo "</pre><hr>"
     form_page
 }

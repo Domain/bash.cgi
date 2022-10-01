@@ -13,12 +13,12 @@ for path in form-files/*.data; do
 	eval $(grep ^$v= form-files/"$B.vars") # setup the env
     done
     # fakes a cgi call, which should ignore the files uploads
-    . ../cgibashopts -n <form-files/"$B.data" 
+    . ../bash.cgi -n <form-files/"$B.data" 
 	
-    if [ -n "$CGIBASHOPTS_DIR" ]; then
-	TERR "CGIBASHOPTS_DIR was defined to $CGIBASHOPTS_DIR"
+    if [ -n "$BASHCGI_DIR" ]; then
+	TERR "BASHCGI_DIR was defined to $BASHCGI_DIR"
 	for i in 1 2 3 4 5; do
-	    [ -e "$CGIBASHOPTS_DIR/file$i" ] && TERR "file $file$i was created"
+	    [ -e "$BASHCGI_DIR/file$i" ] && TERR "file $file$i was created"
 	done
     fi
 

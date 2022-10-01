@@ -22,13 +22,13 @@ for path in form/*.data; do
     for v in REQUEST_METHOD CONTENT_TYPE QUERY_STRING; do
 	eval $(grep ^$v= form/"$B.vars") # setup the env
     done
-    . ../cgibashopts <form/"$B.data" # simulate a cgi call
+    . ../bash.cgi <form/"$B.data" # simulate a cgi call
 	
     # Test the form vars other than file vars
-    [ "$FORM_text" != "A sample string!" ] && TERR "text is \"$FORM_text\""
-    [ "$FORM_ta" != "ta1${nl}ta2${nl}ta3" ] && TERR "ta is \"$FORM_ta\""
-    [ "$FORM_sel" != "sel3" ] && TERR "sel is \"$FORM_sel\""
-    [ "$FORM_check" != "on" ] && TERR "check is \"$FORM_check\""
+    [ "${FORMS[text]}" != "A sample string!" ] && TERR "text is \"${FORMS[text]}\""
+    [ "${FORMS[ta]}" != "ta1${nl}ta2${nl}ta3" ] && TERR "ta is \"${FORMS[ta]}\""
+    [ "${FORMS[sel]}" != "sel3" ] && TERR "sel is \"${FORMS[sel]}\""
+    [ "${FORMS[check]}" != "on" ] && TERR "check is \"${FORMS[check]}\""
 
     . clearenv.sh
 done

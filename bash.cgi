@@ -1,13 +1,14 @@
 #!/bin/bash
 # Author: (c) Colas Nahaboo http://colas.nahaboo.net with a MIT License.
-# See https://github.com/ColasNahaboo/cgibashopts
+# See https://github.com/ColasNahaboo/bashcgi
 # Uses the CGI env variables REQUEST_METHOD CONTENT_TYPE QUERY_STRING
 
 export BASHCGI_RELEASE=4.1.0
 export BASHCGI_VERSION="${BASHCGI_RELEASE%%.*}"
 cr=$'\r'
 nl=$'\n'
-export FORMS=
+declare -A FORMS
+declare -A COOKIES
 export FORMFILES=
 export FORMQUERY=
 
@@ -18,28 +19,31 @@ OPTIONS='nd:'
 OPTIND=1
 while getopts "${OPTIONS}" _o; do
     case "$_o" in
-        n) uploads=false ;;
-        d) tmpfs="$OPTARG" ;;
-        *)
-            echo "unknown option: $_o"
-            exit 1
-            ;;
+    n) uploads=false ;;
+    d) tmpfs="$OPTARG" ;;
+    *)
+        echo "unknown option: $_o"
+        exit 1
+        ;;
     esac
 done
 shift $((OPTIND - 1))
 
 if "$uploads"; then
-    export BASHCGI_DIR="$tmpfs/cgibashopts-files.$$"
+    export BASHCGI_DIR="$tmpfs/bashcgi-files.$$"
     BASHCGI_TMP="$BASHCGI_DIR.tmp"
-    cgibashopts_clean() {
+    bashcgi_clean() {
         [ -n "$BASHCGI_DIR" ] && [ -d "$BASHCGI_DIR" ] && rm -rf "$BASHCGI_DIR"
     }
-    trap cgibashopts_clean EXIT
+    trap bashcgi_clean EXIT
 else
     BASHCGI_TMP=/dev/null
 fi
 
-# emulates bashlib param function. -f operate on uploaded file paths
+trace() {
+    echo "$@" >> /tmp/out.log
+}
+
 param() {
     if [ "$1" = -f ]; then
         shift
@@ -54,12 +58,13 @@ param() {
         if [ $# -eq 0 ]; then
             echo "$FORMS"
         elif [ $# -eq 1 ]; then
-            eval echo "\$FORM_$1"
+            eval echo "\${FORMS[$1]}"
         else
             declare -x "FORM_$1=$*"
         fi
     fi
 }
+
 
 # decodes the %XX url encoding in $1, same as urlencode -d but faster
 # removes carriage returns to force unix newlines, converts + into space
@@ -85,23 +90,23 @@ urlencode() {
     for ((i = 0; i < length; i++)); do
         c="${1:i:1}"
         case $c in
-            [a-zA-Z0-9.~_-]) echo -n "$c" ;;
-            *) printf '%%%02X' "'$c" ;;
+        [a-zA-Z0-9.~_-]) echo -n "$c" ;;
+        *) printf '%%%02X' "'$c" ;;
         esac
     done
 }
 
-if [ "${REQUEST_METHOD:-}" = POST ]; then
+handle_upload() {
     if [[ ${CONTENT_TYPE:-} =~ ^multipart/form-data\;[[:space:]]*boundary=([^\;]+) ]]; then
-        sep="--${BASH_REMATCH[1]}"
-        OIFS="$IFS"
+        local sep="--${BASH_REMATCH[1]}"
+        local OIFS="$IFS"
         IFS=$'\r'
         while read -r line; do
             if [[ $line =~ ^Content-Disposition:\ *form-data\;\ *name=\"([^\"]+)\"(\;\ *filename=\"([^\"]+)\")? ]]; then
-                var="${BASH_REMATCH[1]}"
-                val="${BASH_REMATCH[3]}"
+                local var="${BASH_REMATCH[1]}"
+                local val="${BASH_REMATCH[3]}"
                 [[ $val =~ [%+] ]] && val=$(urldecode "$val")
-                type=
+                local type=
                 read -r line
                 while [ -n "$line" ]; do
                     if [[ $line =~ ^Content-Type:\ *text/plain ]]; then
@@ -116,8 +121,8 @@ if [ "${REQUEST_METHOD:-}" = POST ]; then
                     sed -n -e "{:loop p; n;/^$sep/q; b loop}" >$BASHCGI_TMP
                     [ $BASHCGI_TMP != /dev/null ] &&
                         truncate -s -2 $BASHCGI_TMP # remove last \r\n
-                elif [ "$type" = txt ]; then            # text file upload
-                    lp=
+                elif [ "$type" = txt ]; then        # text file upload
+                    local lp=
                     while read -r line; do
                         [[ $line =~ ^"$sep" ]] && break
                         echo -n "$lp$line"
@@ -143,37 +148,58 @@ if [ "${REQUEST_METHOD:-}" = POST ]; then
                         fi
                     fi
                 fi
-                FORMS="$FORMS${FORMS:+ }$var"
-                declare -x "FORM_$var=$val"
+                FORMS["$var"]="$val"
             fi
         done
-        s="${QUERY_STRING:-}"
         IFS="$OIFS"
-        unset OIFS
-    else
-        stdin=$(cat) # indirection to avoid issues with terminating newlines
-        s="${stdin}&${QUERY_STRING:-}"
-        unset stdin
+        return 0
     fi
-else
-    s="${QUERY_STRING:-}"
-fi
 
-# regular (no file uploads) arguments processing
-if [[ $s =~ = ]]; then # modern & (or ;) separated list of key=value
+    return 1
+}
+
+extract() {
+    declare -n aa="$1"
+    shift
+    local s="$@"
+    trace "Extracting $s ..."
     while [[ $s =~ ^([^=]*)=([^\&\;]*)[\;\&]*(.*)$ ]]; do
-        var="${BASH_REMATCH[1]//[^a-zA-Z_0-9]/}"
-        val="${BASH_REMATCH[2]}"
+        local var="${BASH_REMATCH[1]}"
+        local val="${BASH_REMATCH[2]}"
         s="${BASH_REMATCH[3]}"
-        if [[ $var =~ ^[_[:alpha:]] ]]; then # ignore invalid vars
-            [[ $val =~ [%+] ]] && val=$(urldecode "$val")
-            FORMS="$FORMS${FORMS:+ }$var"
-            declare -x "$var=$val"
-        fi
+        [[ $val =~ [%+] ]] && val=$(urldecode "$val")
+        aa["$var"]="$val"
+        trace "Found key '$var', value '$val'"
     done
-else # legacy indexed search
-    FORMQUERY=$(urldecode "$s")
-fi
+    trace "aa: $aa"
+    trace "Keys: ${!aa[@]}"
+    trace "Values: ${aa[@]}"
+}
 
-# clean up our local variables
-unset sep line var val type s lp
+parse_request() {
+    local s=""
+    if [ "${REQUEST_METHOD:-}" = POST ]; then
+        trace "Found POST"
+        handle_upload && s="${QUERY_STRING:-}" || s="$(cat)&${QUERY_STRING:-}"
+    else
+        trace "POST not found"
+        s="${QUERY_STRING:-}"
+    fi
+
+    # regular (no file uploads) arguments processing
+    if [[ $s =~ = ]]; then # modern & (or ;) separated list of key=value
+        extract FORMS "$s"
+    else # legacy indexed search
+        FORMQUERY=$(urldecode "$s")
+    fi
+}
+
+parse_cookies() {
+    trace "Parsing cookies ... '${HTTP_COOKIE:-}'"
+    extract COOKIES "${HTTP_COOKIE:-}"
+}
+
+parse_request
+parse_cookies
+
+trace "FORMS: ${!FORMS[@]}, ${FORMS[@]}"

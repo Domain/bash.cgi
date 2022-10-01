@@ -23,7 +23,7 @@ for path in form-files/*.data; do
     for v in REQUEST_METHOD CONTENT_TYPE QUERY_STRING; do
 	eval $(grep ^$v= form-files/"$B.vars") # setup the env
     done
-    . ../cgibashopts <form-files/"$B.data" # fakes a cgi call, creates 5 files
+    . ../bash.cgi <form-files/"$B.data" # fakes a cgi call, creates 5 files
 	
     for i in 1 2 3 4 5; do
 	# check if this file is expected to have DOS lines (CR-terminated)
@@ -32,18 +32,18 @@ for path in form-files/*.data; do
 	elif egrep -qs "(^| )${i}( |\$)" form-files/"$B.dos"; then os=dos
 	else os=unix
 	fi
-	if ! cmp -s $CGIBASHOPTS_DIR/file$i files-$os/file$i; then
-	    cp $CGIBASHOPTS_DIR/file$i /tmp/$B-file-$i
+	if ! cmp -s $BASHCGI_DIR/file$i files-$os/file$i; then
+	    cp $BASHCGI_DIR/file$i /tmp/$B-file-$i
 	    TERR "file $file$i differ for browser $B. See difference from expected to result by: diff $PWD/files-$os/file$i /tmp/$B-file$i"
 	fi
-	[ "$(param file$i)" = file$i ] || TERR filename of file$1 is: "\"$(param file$i)\""
+	[ "${FORMS[file$i]}" = file$i ] || TERR filename of file$1 is: "\"${FORMS[file$i]}\""
     done
 
     # while we are at it, also test the form vars other than file vars
-    [ "$FORM_text" != "A sample string!" ] && TERR "text is \"$FORM_text\""
-    [ "$FORM_ta" != "ta1${nl}ta2${nl}ta3" ] && TERR "ta is \"$FORM_ta\""
-    [ "$FORM_sel" != "sel3" ] && TERR "sel is \"$FORM_sel\""
-    [ "$FORM_check" != "on" ] && TERR "check is \"$FORM_check\""
+    [ "${FORMS[text]}" != "A sample string!" ] && TERR "text is \"${FORMS[text]}\""
+    [ "${FORMS[ta]}" != "ta1${nl}ta2${nl}ta3" ] && TERR "ta is \"${FORMS[ta]}\""
+    [ "${FORMS[sel]}" != "sel3" ] && TERR "sel is \"${FORMS[sel]}\""
+    [ "${FORMS[check]}" != "on" ] && TERR "check is \"${FORMS[check]}\""
 
     . clearenv.sh
 done

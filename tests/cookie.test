@@ -1,0 +1,48 @@
+#!/bin/bash
+# run via tewiba
+[ -n "$TEWIBA" ] || exec tewiba -v "$0"
+
+# Testing simple parameters in GET mode
+
+TEST Empty cookie
+export HTTP_COOKIE=
+. ../bash.cgi
+[ "${#COOKIES[@]}" -gt 0 ] && TERR COOKIES var is defined: ${!COOKIES[@]}
+#[ -n "${!FORM_*}" ] && TERR Some FORM_ vars defined: ${!FORM_*}
+. clearenv.sh
+
+TEST Indexed search, legacy
+export HTTP_COOKIE=a+b=
+. ../bash.cgi
+[ "${!COOKIES[@]}" == "a+b" ] || TERR COOKIES key is: "\"${!COOKIES[@]}\""
+[ "${COOKIES[@]}" == "" ] || TERR COOKIES value is: "\"${COOKIES[@]}\""
+#[ -n "${!FORM_*}" ] && TERR Some FORM_ vars defined: ${!FORM_*}
+. clearenv.sh
+
+TEST Single cookie
+export HTTP_COOKIE=x=1
+. ../bash.cgi
+[ "${!COOKIES[@]}" == x ] || TERR COOKIES is: "\"${!COOKIES[@]}\""
+[ "${COOKIES[x]}" == 1 ] || TERR FORM_x is: "\"${COOKIES[x]}\""
+. clearenv.sh
+
+TEST Multiple cookies
+export HTTP_COOKIE='x=1&y=2;z=3&a_a=4;b_b=5'
+. ../bash.cgi
+#[ "$COOKIES" == 'x y z a_a b_b' ] || TERR COOKIES is: "\"$COOKIES\""
+[ "${COOKIES[x]}" == 1 ] || TERR FORM_x is: "\"${COOKIES[x]}\""
+[ "${COOKIES[y]}" == 2 ] || TERR FORM_y is: "\"${COOKIES[y]}\""
+[ "${COOKIES[z]}" == 3 ] || TERR FORM_z is: "\"${COOKIES[z]}\""
+[ "${COOKIES[a_a]}" == 4 ] || TERR FORM_a_a is: "\"${COOKIES[a_a]}\""
+[ "${COOKIES[b_b]}" == 5 ] || TERR FORM_b_b is: "\"${COOKIES[b_b]}\""
+. clearenv.sh
+
+TEST urldecode cookie
+export HTTP_COOKIE='x=a%2bb+%3D+c+%3d+b%2Ba'
+. ../bash.cgi
+[ "${COOKIES[x]}" == 'a+b = c = b+a' ] || TERR FORM_x is: "\"${COOKIES[x]}\""
+. clearenv.sh
+us="$(urldecode a%2bb+%3D+c+%3d+b%2Ba)"
+[ "$us" == 'a+b = c = b+a' ] || TERR urldecode is: \"$us\"
+
+TEND

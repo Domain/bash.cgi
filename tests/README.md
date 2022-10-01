@@ -1,5 +1,5 @@
 # Cgibashopts test suite
-This is a test suite of the cgibashopts library, using [tewiba](http://colas.nahaboo.net/Software/Tewiba) (included)
+This is a test suite of the bash.cgi library, using [tewiba](http://colas.nahaboo.net/Software/Tewiba) (included)
 
 Just run `RUN-ALL-TESTS` to run all the tests silently. No output means everything is OK. Use `RUN-ALL-TESTS -v` for verbose mode. Each set of tests is in a `*.test` file, that can be also run individually:
 
