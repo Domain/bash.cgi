@@ -14,7 +14,7 @@ export FORMQUERY=
 
 # parse options
 uploads=true
-tmpfs=/tmp
+tmpfs=${TMPDIR:-/tmp}
 OPTIONS='nd:'
 OPTIND=1
 while getopts "${OPTIONS}" _o; do
