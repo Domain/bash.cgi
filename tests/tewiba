@@ -8,7 +8,7 @@ Copyright (c) 2013-2021 Colas Nahaboo (http://colas.nahaboo.net)"
 #TEWIBA_IGNORE# Tell tewiba that we are not a test file.
 ############################################ Options parsing
 export _debug=false
-export _debuglog=/tmp/tewiba.$LOGNAME.xlog
+export _debuglog=${TMPDIR:-/tmp}/tewiba.$LOGNAME.xlog
 export statusfile=
 export ts_standalone=false
 export TEWIBADIR
@@ -61,7 +61,7 @@ fi
 #               not pollute the stderr of tests when in sub-tewibas
 # TECHOF text   Same, but prints in all modes
 #
-export tmp=/tmp/tewiba.$$
+export tmp=${TMPDIR:-/tmp}/tewiba.$$
 export nl=$'\n' #'
 export TFAILS=0
 export TOTEST
@@ -70,7 +70,7 @@ export TEWIBA_COLORS; [ -z "$TEWIBA_COLORS" ] && \
     TEWIBA_COLORS=':none=0:error=31:fatal=1;31:info=36:title=34:ok=32:allok=32;4:warning=35'
 # Except the internal ones below, that start with an underscore "_"
 export _ts_failures=0		# cumulative total of TFAILS
-export _twtmp=/tmp/tewiba-main.$$ # tewiba-reserved temp zone
+export _twtmp=${TMPDIR:-/tmp}/tewiba-main.$$ # tewiba-reserved temp zone
 export _TINITS=			# the __END__$i to trigger
 export _TEST_CURRENT		# last TEST arg
 export _cd=			# dir we are in, with its __INIT__ executed

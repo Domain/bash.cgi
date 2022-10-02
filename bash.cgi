@@ -5,8 +5,8 @@
 
 export BASHCGI_RELEASE=5.0.0
 export BASHCGI_VERSION="${BASHCGI_RELEASE%%.*}"
-cr=$'\r'
-nl=$'\n'
+declare cr=$'\r'
+declare nl=$'\n'
 declare -A FORMS
 declare -A COOKIES
 export FORMFILES=
@@ -41,7 +41,7 @@ else
 fi
 
 trace() {
-    #echo "$@" >> /tmp/out.log
+    #echo "$@" >> ${TMPDIR:-/tmp}/out.log
     :
 }
 

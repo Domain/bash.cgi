@@ -9,7 +9,7 @@
 # the web server, and form-files/$B.vars is the dump of the environment vars
 # the uploaded files sources are in files-unix for the browsers under unix
 # and files-dos for the browsers under windows, as captured by 
-# cgibashopts-form-files.cgi in /tmp/CBOgen-$B.data and /tmp/CBOgen-$B.vars
+# cgibashopts-form-files.cgi in ${TMPDIR:-/tmp}/CBOgen-$B.data and ${TMPDIR:-/tmp}/CBOgen-$B.vars
 # Do not touch the form fields before submitting
 
 # We "replay" all the saved CGI invocation data in form, so we do not 

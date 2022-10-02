@@ -28,7 +28,6 @@ Troubleshooting: if something goes wrong, run `tests/tewiba -v` in the bash.cgi 
 - To use the library, source it at the start of your script, as early as possible to avoid conflicts with variables you could use later in your script.
 - The library decodes the parameters of GET and POST requests, with all possible ways of encoding the parameters (via "enctype"). 
 - The list of parameter names is listed in `$FORMS` as keys. E.g: `echo "${!FORMS[@]}" ==> foo bar gee`. The parameter names are the one specified by the `name` attribute in the various HTML elements in an HTML form, or sent via commands like `wget` or `curl`. Parameter names must be legal variable names for bash: alphanumeric characters and underscores, and not starting by a digit.
-- Invalid parameter names (e.g: 0to60, a-b, a:b, ...) are silently ignored, as well as their values
 - Each parameter value is copied as the value of `$FORMS`. E.g: `${FORMS[foo]}` for an HTML form element named `foo`.
 - Multi-line parameter values are converted to unix end of lines (a newline instead of carriage return and newline)
 - **Files uploads:** When files are uploaded, via form elements like `<input type=file name=file1>`, bash.cgi places the parameter name (here `file1`) into the variable $FORMFILES, which is a space-separated list of all file parameter names received. The actual name of the uploaded file can be found in the variable value (here `$FORM_file1`), while the contents of the file can be found in a local file named by the variable in the `$BASHCGI_DIR` directory, (here `$BASHCGI_DIR/file1`)
@@ -56,16 +55,15 @@ A test suite is provided, it can be run by `./tests/RUN-ALL-TESTS`, for more det
 
 ## Feedback
 Feel welcome to copy and enhance this project, as well as providing bug reports, feedback, suggestions via:
-- Creating [issues](https://gitreports.com/issue/ColasNahaboo/bash.cgi), if you have a GitHub account.
-- Use the provided [Git Report Form](https://gitreports.com/issue/ColasNahaboo/bash.cgi) to create an issue if you do not have a GitHib account.
-- Create or participate in a [Discussion](https://github.com/ColasNahaboo/bash.cgi/discussions) on this project
-- Or just email me: colas@nahaboo.net
+- Creating [issues](https://github.com/Domain/bash.cgi/issues), if you have a GitHub account.
+- Create or participate in a [Discussion](https://github.com/Domain/bash.cgi/discussions) on this project
 
 ## History of changes
 - 2022-10-01 v5.0.0
   - rename to bash.cgi
   - support cookies
   - all values save to an associative array FORMS
+  - remove param function
 - 2021-12-23 v4.1.0
   - switched to semantic versioning, with new var `BASHCGI_RELEASE`
   - new -d option to specify the temporary directory (suggestion of "Aufschlauer")

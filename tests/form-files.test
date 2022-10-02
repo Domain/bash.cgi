@@ -9,7 +9,7 @@
 # the web server, and form-files/$B.vars is the dump of the environment vars
 # the uploaded files sources are in files-unix for the browsers under unix
 # and files-dos for the browsers under windows, as captured by 
-# cgibashopts-form-files.cgi in /tmp/CBOgenf-$B.data and /tmp/CBOgenf-$B.vars
+# cgibashopts-form-files.cgi in ${TMPDIR:-/tmp}/CBOgenf-$B.data and ${TMPDIR:-/tmp}/CBOgenf-$B.vars
 # In the form, only the files fields should be manually set, do not touch the
 # others before submitting
 
@@ -33,8 +33,8 @@ for path in form-files/*.data; do
 	else os=unix
 	fi
 	if ! cmp -s $BASHCGI_DIR/file$i files-$os/file$i; then
-	    cp $BASHCGI_DIR/file$i /tmp/$B-file-$i
-	    TERR "file $file$i differ for browser $B. See difference from expected to result by: diff $PWD/files-$os/file$i /tmp/$B-file$i"
+	    cp $BASHCGI_DIR/file$i ${TMPDIR:-/tmp}/$B-file-$i
+	    TERR "file $file$i differ for browser $B. See difference from expected to result by: diff $PWD/files-$os/file$i ${TMPDIR:-/tmp}/$B-file$i"
 	fi
 	[ "${FORMS[file$i]}" = file$i ] || TERR filename of file$1 is: "\"${FORMS[file$i]}\""
     done
