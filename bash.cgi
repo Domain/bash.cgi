@@ -1,48 +1,51 @@
 #!/bin/bash
 # Author: (c) Colas Nahaboo http://colas.nahaboo.net with a MIT License.
-# See https://github.com/ColasNahaboo/bashcgi
+# See https://github.com/ColasNahaboo/cgibashopts
+# Author: (c) Domain https://github.com/Domain with a MIT License.
+# See https://github.com/Domain/bash.cgi
 # Uses the CGI env variables REQUEST_METHOD CONTENT_TYPE QUERY_STRING
 
 export BASHCGI_RELEASE=5.0.0
 export BASHCGI_VERSION="${BASHCGI_RELEASE%%.*}"
+
 declare cr=$'\r'
 declare nl=$'\n'
+declare response_content_type=''
 declare -A FORMS
 declare -A COOKIES
+declare -A SET_COOKIES
 export FORMFILES=
 export FORMQUERY=
 
-# parse options
-uploads=true
-tmpfs=${TMPDIR:-/tmp}
-OPTIONS='nd:'
-OPTIND=1
-while getopts "${OPTIONS}" _o; do
-    case "$_o" in
-    n) uploads=false ;;
-    d) tmpfs="$OPTARG" ;;
-    *)
-        echo "unknown option: $_o"
-        exit 1
-        ;;
-    esac
-done
-shift $((OPTIND - 1))
+export BASHCGI_DIR="${BASHCGI_ROOT:-${TMPDIR:-/tmp}}/bash.cgi.dir"
+BASHCGI_TMP="$BASHCGI_DIR/tmp"
+BASHCGI_UPLOAD="$BASHCGI_DIR/upload"
+BASHCGI_SESSION="$BASHCGI_DIR/session"
 
-if "$uploads"; then
-    export BASHCGI_DIR="$tmpfs/bashcgi-files.$$"
-    BASHCGI_TMP="$BASHCGI_DIR.tmp"
-    bashcgi_clean() {
-        [ -n "$BASHCGI_DIR" ] && [ -d "$BASHCGI_DIR" ] && rm -rf "$BASHCGI_DIR"
-    }
-    trap bashcgi_clean EXIT
-else
-    BASHCGI_TMP=/dev/null
-fi
+mkdir -p "$BASHCGI_DIR" > /dev/null 2>&1
+
+bashcgi_clean() {
+    [ -f "$BASHCGI_TMP" ] && rm -rf "$BASHCGI_TMP"
+}
+
+overtrap() {
+    local handler="$1"
+    shift
+    local signals=$@
+    for sig in "${signals[@]}"; do
+        local cur="$(trap -p $sig | sed -nr "s/trap -- '(.*)' $sig\$/\1/p")"
+        if test ${cur:+x}; then
+            trap "{ $cur; }; { $handler; }" $sig
+        else
+            trap "$handler" $sig
+        fi
+    done
+}
+
+overtrap bashcgi_clean EXIT
 
 trace() {
-    #echo "$@" >> ${TMPDIR:-/tmp}/out.log
-    :
+    [ -v "$BASHCGI_DEBUG" ] && { echo "$@" >> ${BASHCGI_DIR:-/tmp}/out.log; }
 }
 
 # decodes the %XX url encoding in $1, same as urlencode -d but faster
@@ -69,8 +72,8 @@ urlencode() {
     for ((i = 0; i < length; i++)); do
         c="${1:i:1}"
         case $c in
-        [a-zA-Z0-9.~_-]) echo -n "$c" ;;
-        *) printf '%%%02X' "'$c" ;;
+            [a-zA-Z0-9.~_-]) echo -n "$c" ;;
+            *) printf '%%%02X' "'$c" ;;
         esac
     done
 }
@@ -118,10 +121,10 @@ handle_upload() {
                     if [ $BASHCGI_TMP != /dev/null ]; then
                         if [ -n "$val" ]; then
                             # a file was uploaded, even empty
-                            [ -n "$FORMFILES" ] || mkdir -p "$BASHCGI_DIR"
+                            [ -n "$FORMFILES" ] || mkdir -p "$BASHCGI_UPLOAD"
                             FORMFILES="$FORMFILES${FORMFILES:+ }$var"
-                            declare -x "FORMFILE_$var=$BASHCGI_DIR/${var}"
-                            mv $BASHCGI_TMP "$BASHCGI_DIR/${var}"
+                            declare -x "FORMFILE_$var=$BASHCGI_UPLOAD/${var}"
+                            mv $BASHCGI_TMP "$BASHCGI_UPLOAD/${var}"
                         else
                             rm -f $BASHCGI_TMP
                         fi
@@ -143,16 +146,13 @@ extract() {
     local s="$@"
     trace "Extracting $s ..."
     while [[ $s =~ ^([^=]*)=([^\&\;]*)[\;\&]*(.*)$ ]]; do
-        local var="${BASH_REMATCH[1]}"
-        local val="${BASH_REMATCH[2]}"
+        local var="$(echo "${BASH_REMATCH[1]}" | xargs)"
+        local val="$(echo "${BASH_REMATCH[2]}" | xargs)"
         s="${BASH_REMATCH[3]}"
         [[ $val =~ [%+] ]] && val=$(urldecode "$val")
         aa["$var"]="$val"
         trace "Found key '$var', value '$val'"
     done
-    trace "aa: $aa"
-    trace "Keys: ${!aa[@]}"
-    trace "Values: ${aa[@]}"
 }
 
 parse_request() {
@@ -178,7 +178,103 @@ parse_cookies() {
     extract COOKIES "${HTTP_COOKIE:-}"
 }
 
+set_cookie() {
+    local key="$1"
+    shift
+    local value="$*"
+
+    SET_COOKIES["$key"]="$value"
+}
+
+content_type()
+{
+    [ $# -eq 1 ] || return 1
+    [ -z "${response_content_type}" ] || return 2
+    
+    response_content_type=$1
+
+    for k in "${!SET_COOKIES[@]}"; do
+        echo "Set-Cookie: $k=${SET_COOKIES[$k]}"
+    done
+
+    echo "Content-Type: $1; charset=utf-8"
+    echo "Cache-Control: no-cache"
+    echo "Content-range: bytes */*" # this prevent mod_deflate buffering
+    echo
+}
+
+date2stamp () {
+    date --date "$1" +%s
+}
+
+stamp2date (){
+    date --date @$1 "+%Y-%m-%d %T"
+}
+
+dateDiff (){
+    declare -i sec=86400
+    case $1 in
+        -s)   sec=1;      shift;;
+        -m)   sec=60;     shift;;
+        -h)   sec=3600;   shift;;
+        -d)   sec=86400;  shift;;
+        *)    sec=86400;;
+    esac
+    local date1=$(date2stamp "$1")
+    local date2=$(date2stamp "$2")
+    local diffSec=$((date2-date1))
+    echo $((diffSec/sec))
+}
+
+new_session() {
+    local sid=$(cat /proc/sys/kernel/random/uuid)
+    local sfile="$BASHCGI_SESSION/$sid"
+    mkdir -p "$BASHCGI_SESSION"
+    touch "$sfile"
+    trace "new session $sid in $BASHCGI_SESSION"
+
+    local expired=${1:-$(date -d "now 1 month" "+%Y-%m-%d %T")}
+    echo "declare -x bashcgi_expired=\"$expired\"" >> "$sfile"
+    echo "$sid"
+}
+
+check_session() {
+    local sid="$1"
+    local sfile="$BASHCGI_SESSION/$sid"
+    trace "checking session file $sfile ..."
+    [ -f "$sfile" ] && source "$sfile" || { trace "fail to load $sfile"; return -1; }
+    trace "checking expired date $bashcgi_expired ..."
+    [ -n "$bashcgi_expired" ] && [ $(dateDiff -s "now" "$bashcgi_expired") -gt 0 ] || 
+        { rm -rf "$sfile"; trace "session expired at $bashcgi_expired"; return -2; }
+
+    shift
+    local keys="$@"
+    declare -i i=1
+    for k in "$@"; do
+        [ -n "${!k}" ] && trace "key $k=${!k} confirmed" || { trace "missing key $k"; return i; }
+        ((i++))
+    done
+    trace "session $sid is ok"
+}
+
+save_session() {
+    trace "saving session $#: '$@'"
+    check_session $1 && trace "check passed" || { trace "fail to save session"; return 1; }
+
+    local sid="$1"
+    local sfile="$BASHCGI_SESSION/$sid"
+
+    shift
+    for v in "$@"; do
+        echo "$v" >> "$sfile"
+    done
+}
+
+delete_session() {
+    local sid="$1"
+    local sfile="$BASHCGI_SESSION/$sid" 
+    rm -rf "$sfile"
+}
+
 parse_request
 parse_cookies
-
-trace "FORMS: ${!FORMS[@]}, ${FORMS[@]}"
