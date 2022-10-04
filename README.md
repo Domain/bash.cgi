@@ -59,6 +59,9 @@ Feel welcome to copy and enhance this project, as well as providing bug reports,
 - Create or participate in a [Discussion](https://github.com/Domain/bash.cgi/discussions) on this project
 
 ## History of changes
+- 2022-10-04 v5.1.0
+  - support sessions!
+  - remove options
 - 2022-10-01 v5.0.0
   - rename to bash.cgi
   - support cookies

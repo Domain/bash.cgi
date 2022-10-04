@@ -5,7 +5,7 @@
 # See https://github.com/Domain/bash.cgi
 # Uses the CGI env variables REQUEST_METHOD CONTENT_TYPE QUERY_STRING
 
-export BASHCGI_RELEASE=5.0.0
+export BASHCGI_RELEASE=5.1.0
 export BASHCGI_VERSION="${BASHCGI_RELEASE%%.*}"
 
 declare cr=$'\r'
