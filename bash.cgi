@@ -268,7 +268,7 @@ save_session() {
 
     shift
     for v in "$@"; do
-        echo "$v" >> "$sfile"
+        grep "$v" "$sfile" > /dev/null 2>&1 || echo "$v" >> "$sfile"
     done
 }
 
