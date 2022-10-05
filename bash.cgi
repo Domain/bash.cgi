@@ -5,9 +5,8 @@
 # See https://github.com/Domain/bash.cgi
 # Uses the CGI env variables REQUEST_METHOD CONTENT_TYPE QUERY_STRING
 
-export BASHCGI_RELEASE=5.1.0
-export BASHCGI_VERSION="${BASHCGI_RELEASE%%.*}"
-
+declare -x BASHCGI_RELEASE=5.1.0
+declare -x BASHCGI_VERSION="${BASHCGI_RELEASE%%.*}"
 declare cr=$'\r'
 declare nl=$'\n'
 declare response_content_type=''
@@ -45,7 +44,7 @@ overtrap() {
 overtrap bashcgi_clean EXIT
 
 trace() {
-    [ -v "$BASHCGI_DEBUG" ] && { echo "$@" >> ${BASHCGI_DIR:-/tmp}/out.log; }
+    [ -n "$BASHCGI_DEBUG" ] && { echo "$@" >> ${BASHCGI_DIR:-/tmp}/out.log; }
 }
 
 # decodes the %XX url encoding in $1, same as urlencode -d but faster
@@ -149,7 +148,8 @@ extract() {
         local var="$(echo "${BASH_REMATCH[1]}" | xargs)"
         local val="$(echo "${BASH_REMATCH[2]}" | xargs)"
         s="${BASH_REMATCH[3]}"
-        [[ $val =~ [%+] ]] && val=$(urldecode "$val")
+        [[ $var =~ [%+] ]] && var="$(urldecode "$var")"
+        [[ $val =~ [%+] ]] && val="$(urldecode "$val")"
         aa["$var"]="$val"
         trace "Found key '$var', value '$val'"
     done
@@ -179,11 +179,12 @@ parse_cookies() {
 }
 
 set_cookie() {
-    local key="$1"
-    shift
-    local value="$*"
+    local key=$(urlencode "$1")
+    local value=$(urlencode "$2")
+    local opts=''
+    [ $# -gt 2 ] && { shift 2; opts=";$*"; }
 
-    SET_COOKIES["$key"]="$value"
+    SET_COOKIES["$key"]="$value$opts"
 }
 
 content_type()
@@ -233,7 +234,8 @@ new_session() {
     touch "$sfile"
     trace "new session $sid in $BASHCGI_SESSION"
 
-    local expired=${1:-$(date -d "now 1 month" "+%Y-%m-%d %T")}
+    declare -i sec=${1:-3600*24*30}
+    local expired=$(date -d "now +$sec seconds" "+%Y-%m-%d %T")
     echo "declare -x bashcgi_expired=\"$expired\"" >> "$sfile"
     echo "$sid"
 }
