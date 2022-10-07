@@ -42,7 +42,7 @@ overtrap() {
 overtrap bashcgi_clean EXIT
 
 trace() {
-    [ -n "$BASHCGI_DEBUG" ] && echo "$@" >> "${BASHCGI_DEBUG}"
+    [ -n "$BASHCGI_DEBUG" ] && mkdir -p "$(dirname "$BASHCGI_DEBUG")" > /dev/null 2>&1 && echo "$@" >> "${BASHCGI_DEBUG}"
 }
 
 # decodes the %XX url encoding in $1, same as urlencode -d but faster
