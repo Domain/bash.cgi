@@ -32,8 +32,8 @@ for path in form-files/*.data; do
 	elif egrep -qs "(^| )${i}( |\$)" form-files/"$B.dos"; then os=dos
 	else os=unix
 	fi
-	if ! cmp -s $BASHCGI_DIR/file$i files-$os/file$i; then
-	    cp $BASHCGI_DIR/file$i ${TMPDIR:-/tmp}/$B-file-$i
+	if ! cmp -s $BASHCGI_UPLOAD/file$i files-$os/file$i; then
+	    cp $"$BASHCGI_UPLOAD/file$i"/file$i ${TMPDIR:-/tmp}/$B-file-$i
 	    TERR "file $file$i differ for browser $B. See difference from expected to result by: diff $PWD/files-$os/file$i ${TMPDIR:-/tmp}/$B-file$i"
 	fi
 	[ "${FORMS[file$i]}" = file$i ] || TERR filename of file$1 is: "\"${FORMS[file$i]}\""

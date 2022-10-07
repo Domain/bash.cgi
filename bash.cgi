@@ -17,11 +17,9 @@ export FORMFILES=
 export FORMQUERY=
 
 export BASHCGI_DIR="${BASHCGI_ROOT:-${TMPDIR:-/tmp}}/bash.cgi.dir"
+export BASHCGI_UPLOAD="$BASHCGI_DIR/upload"
 BASHCGI_TMP="$BASHCGI_DIR/tmp"
-BASHCGI_UPLOAD="$BASHCGI_DIR/upload"
 BASHCGI_SESSION="$BASHCGI_DIR/session"
-
-mkdir -p "$BASHCGI_DIR" > /dev/null 2>&1
 
 bashcgi_clean() {
     [ -f "$BASHCGI_TMP" ] && rm -rf "$BASHCGI_TMP"
@@ -44,7 +42,7 @@ overtrap() {
 overtrap bashcgi_clean EXIT
 
 trace() {
-    [ -n "$BASHCGI_DEBUG" ] && { echo "$@" >> ${BASHCGI_DIR:-/tmp}/out.log; }
+    [ -n "$BASHCGI_DEBUG" ] && echo "$@" >> "${BASHCGI_DEBUG}"
 }
 
 # decodes the %XX url encoding in $1, same as urlencode -d but faster
@@ -97,6 +95,7 @@ handle_upload() {
                     fi
                     read -r line
                 done
+                trace "Found form file ${var}:${val}, type ${type}"
                 if [ "$type" = bin ]; then # binary file upload
                     # binary-read stdin till next step
                     sed -n -e "{:loop p; n;/^$sep/q; b loop}" >$BASHCGI_TMP
@@ -119,6 +118,7 @@ handle_upload() {
                 if [ -n "$type" ]; then
                     if [ $BASHCGI_TMP != /dev/null ]; then
                         if [ -n "$val" ]; then
+                            trace "Moving file $BASHCGI_TMP to $BASHCGI_UPLOAD/$var"
                             # a file was uploaded, even empty
                             [ -n "$FORMFILES" ] || mkdir -p "$BASHCGI_UPLOAD"
                             FORMFILES="$FORMFILES${FORMFILES:+ }$var"
@@ -277,6 +277,8 @@ delete_session() {
     local sfile="$BASHCGI_SESSION/$sid" 
     rm -rf "$sfile"
 }
+
+mkdir -p "$BASHCGI_DIR" > /dev/null 2>&1 || trace "Fail to mkdir $BASHCGI_DIR"
 
 parse_request
 parse_cookies

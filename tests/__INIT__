@@ -1,3 +1,4 @@
 # clears the CGI env vars that could fool the tests
 . clearenv.sh
 
+export BASHCGI_DEBUG=${TMPDIR:-/tmp}/bashcgi.debug

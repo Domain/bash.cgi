@@ -12,7 +12,7 @@ export HTTP_COOKIE=
 . clearenv.sh
 
 TEST Indexed search, legacy
-export HTTP_COOKIE=a+b=
+export HTTP_COOKIE=$(urlencode "a+b")=
 . ../bash.cgi
 [ "${!COOKIES[@]}" == "a+b" ] || TERR COOKIES key is: "\"${!COOKIES[@]}\""
 [ "${COOKIES[@]}" == "" ] || TERR COOKIES value is: "\"${COOKIES[@]}\""
